@@ -37,8 +37,9 @@ public class LayerInfo {
     }
     
     // Wenn ich nicht GeoServer und GeoTools als Abhängigkeit haben will, was zwar zur Runtime vorhanden ist 
-    // aber zum Entwickeln und Testen mühsam, ist die BBOX (Klasse SRSEnvelope) einfach ein String. In der Map
-    // sind es Objects, d.h. toString ist immer gleich. Wenn aber toString ändert, funktioniert es nicht mehr.
+    // aber zum Entwickeln und Testen mühsam ist, ist die BBOX (Klasse SRSEnvelope) einfach ein String resp. ich muss
+    // toString verwenden. In der Map sind es Objects, d.h. toString ist immer gleich. Wenn aber toString ändert, 
+    // funktioniert es nicht mehr.
     public static List<Map<String,Object>> executeSql(String jndiName, Map<String,Object> requestParam, String dataDir, String sqlFile) {
         
         
