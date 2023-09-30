@@ -1,0 +1,32 @@
+plugins {
+    id 'java-library'
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+
+}
+
+apply from: "$rootDir/gradle/versioning.gradle"
+
+sourceCompatibility = '11'
+targetCompatibility = '11'
+
+compileJava {
+    options.compilerArgs.addAll(['--release', '11'])
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.1'
+    testImplementation 'org.postgresql:postgresql:42.6.0'
+    testImplementation 'org.apache.tomcat:tomcat-juli:9.0.80'
+    testImplementation 'org.apache.tomcat:tomcat-catalina:9.0.80'
+
+    //api 'org.apache.commons:commons-math3:3.6.1'
+    //implementation 'com.google.guava:guava:31.1-jre'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
