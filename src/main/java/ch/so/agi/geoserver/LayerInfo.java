@@ -67,6 +67,9 @@ public class LayerInfo {
         double y1 = Double.valueOf(yy.split(":")[0].trim());
         double y2 = Double.valueOf(yy.split(":")[1].trim());
         
+        // TODO 
+        // alle klassentypen ausgeben. Einiges ist string, anderes int?
+        
         
         LOGGER.log(Level.FINE, "An FINE level log!");
         LOGGER.log(Level.INFO, "An INFO level log!");
