@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ public class LayerInfo {
     private static Logger LOGGER = Logger.getLogger(LayerInfo.class.getName());
 
     private static final String SQL_FILE_DIR = "layerinfo_sql";
+    private static final String TOLERANCE_IN_PIXEL_PARAM = "TOLERANCE_IN_PIXEL";
+    private static final int TOLERANCE_IN_PIXEL = 4;
 
     static {
         try {
@@ -41,19 +44,24 @@ public class LayerInfo {
     // toString verwenden. In der Map sind es Objects, d.h. toString ist immer gleich. Wenn aber toString ändert, 
     // funktioniert es nicht mehr.
     public static List<Map<String,Object>> executeSql(String jndiName, Map<String,Object> requestParam, String dataDir, String sqlFile) {
-        
-        
         List<Map<String,Object>> list = new ArrayList<>();
         
         System.out.println("requestParam: " + requestParam);
         System.out.println(requestParam.get("BBOX"));
+
         System.out.println(requestParam.get("BBOX").getClass());
-        
+        System.out.println(requestParam.get("WIDTH").getClass());
+        System.out.println(requestParam.get("HEIGHT").getClass());
+        System.out.println(requestParam.get("X").getClass());
+        System.out.println(requestParam.get("Y").getClass());
         
         System.out.println("dataDir: " + dataDir);
         System.out.println("sqlFile: " + sqlFile);
 
+        //LOGGER.log(Level.FINE, "scale: " + String.valueOf(resolution));
+        
         // X-/Y-Koordinaten des geklickten Punktes berechnen
+        // Und Auflösung, um korrekt buffern zu können.
         double width = Double.valueOf((Integer)requestParam.get("WIDTH"));
         double height = Double.valueOf((Integer)requestParam.get("HEIGHT"));
         int x = Integer.valueOf((String)requestParam.get("X"));
@@ -67,14 +75,17 @@ public class LayerInfo {
         double x2 = Double.valueOf(xx.split(":")[1].trim());
         double y1 = Double.valueOf(yy.split(":")[0].trim());
         double y2 = Double.valueOf(yy.split(":")[1].trim());
+        double diffX = x2 - x1;
+        double diffY = y2 - y1;
         
-        // TODO 
-        // alle klassentypen ausgeben. Einiges ist string, anderes int?
+        double quotX = x / width;
+        double quotY = y / height;
         
+        double xcoord = x1 + diffX * quotX;
+        double ycoord = y1 + diffY * quotY;
         
-        LOGGER.log(Level.FINE, "An FINE level log!");
-        LOGGER.log(Level.INFO, "An INFO level log!");
-
+        double resolution = diffX / width;
+        
         // SQL-Datei lesen
         String sql = null;
         Path sqlFilePath = Path.of(dataDir, SQL_FILE_DIR, sqlFile);
@@ -86,46 +97,40 @@ public class LayerInfo {
         }
         
         // Parameter in SQL-Befehl replacen
-        System.out.println(sql);
-        
-                
-        
+        sql = sql
+                .replace(":x", String.valueOf(xcoord))
+                .replace(":y", String.valueOf(ycoord))
+                .replace(":resolution", String.valueOf(resolution))
+                .replace(":"+TOLERANCE_IN_PIXEL_PARAM, String.valueOf(TOLERANCE_IN_PIXEL));
+
+        // SQL-Query ausführen
         try {       
             Context context = new InitialContext();
             DataSource dataSource = (DataSource) context.lookup(jndiName);
             
-//            Connection con = dataSource.getConnection();
-//            Statement stmt = con.createStatement();
-//            
-//            ResultSet rs = stmt.executeQuery("select empid, name from Employee");
-
-            // TODO muss generisch zu key/value mappen
             try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
-                ResultSet rs = stmt.executeQuery("SELECT 1");
+                ResultSet rs = stmt.executeQuery(sql);
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
                 while(rs.next()) {
-                    int i = rs.getInt(1);
-                    System.out.println("**********" + i);
+                    Map<String,Object> map = new HashMap<>();
+
+                    for (int column = 1; column <= columnCount; ++column) {
+                        Object value = rs.getObject(column);
+                        map.put(meta.getColumnName(column), value);
+                    }
+                    list.add(map);
+                    
                 }
              } catch (SQLException e) {
                 e.printStackTrace();
+                LOGGER.log(Level.SEVERE, e.getMessage());
                 return null;
              }
         } catch (NamingException e) {
-            System.out.println("Got naming exception, details are -> " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Got naming exception, details are -> " + e.getMessage());
             return null;
         } 
-        
-        Map<String,Object> map1 = new HashMap<>();
-        map1.put("t_id", "feature.UNO");
-        map1.put("attr1", "value1_1");
-        map1.put("attr2", "value1_2");
-        list.add(map1);
-        
-        Map<String,Object> map2 = new HashMap<>();
-        map2.put("t_id", "feature.DUE");
-        map2.put("attr1", "value2_1");
-        map2.put("attr2", "value2_2");
-        list.add(map2);
 
         return list;
     }

@@ -57,6 +57,8 @@ public class LayerInfoTest {
         System.out.println(responseList);
         
         assertNotNull(responseList);
+        
+        System.out.println(responseList);
     }
     
 }
